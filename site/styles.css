@@ -1,0 +1,10 @@
+:root { color-scheme: light dark; --ink: #1a1a1a; --paper: #fdfdfb; --accent: #8a4b14; }
+@media (prefers-color-scheme: dark) { :root { --ink: #f2f2ee; --paper: #161616; --accent: #f0b070; } }
+* { box-sizing: border-box; }
+body { margin: 0; font: 1.0625rem/1.6 system-ui, sans-serif; color: var(--ink); background: var(--paper); }
+header, main, footer { max-width: 60rem; margin: 0 auto; padding: 1.5rem 1rem; }
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: 1rem; top: 1rem; background: var(--paper); padding: 0.5rem; }
+a { color: var(--accent); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

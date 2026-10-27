@@ -1,0 +1,84 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Frozen acceptance tests (site and brief)
+        run: python -m unittest discover -s tests -v
+  qa:
+    # QA's own tests, written by the crew's QA agent: reviewable and run on
+    # every change, but advisory until QA is qualified, so they never hold.
+    # They are model-written, so they run only in a pinned container with no
+    # network, no capabilities, no token and a read-only copy of the repo.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: QA tests (advisory, sandboxed)
+        continue-on-error: true
+        run: |
+          if [ ! -d qa ]; then echo "No QA tests yet."; exit 0; fi
+          docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
+            --memory 1g --pids-limit 256 --read-only --tmpfs /tmp --user 65534:65534 \
+            -v "$PWD:/work:ro" -w /work \
+            mirror.gcr.io/library/python@sha256:70729b46c69b4f1e97c4822c1af3df53a1476cf5ddc6c087c0c10bc3a5678c2f \
+            timeout 240 python -I -B -m unittest discover -s qa -v
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: The same pinned hooks as local commits
+        run: |
+          python -m pip install pre-commit==4.6.2
+          pre-commit run --all-files --show-diff-on-failure
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+      - name: Install the pinned browser stack
+        working-directory: tests/browser
+        run: |
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+      - name: Serve the built site and check it on phone and desktop
+        run: |
+          mkdir -p dist
+          for f in site/*; do sed -e 's#%BASE%#/#g' -e "s#%RELEASE%#${GITHUB_SHA}#g" "$f" > "dist/$(basename "$f")"; done
+          python3 -m http.server 8000 --directory dist --bind 127.0.0.1 &
+          node tests/browser/qa.mjs http://127.0.0.1:8000/
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: qa-screenshots
+          path: qa-artifacts/
+          retention-days: 7
