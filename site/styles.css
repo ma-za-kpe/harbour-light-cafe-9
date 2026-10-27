@@ -91,7 +91,7 @@ a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness:
   border-radius: 999px;
   transition: background-color 0.18s ease, color 0.18s ease;
 }
-.nav a:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+.nav a:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
 
 /* Hero */
 .hero {
