@@ -1,0 +1,9 @@
+:root {
+  --ink: #1a1a1a;
+  --paper: #f5f5f5;
+  --accent: #005b96;
+  --accent-ink: #ffffff;
+  --muted: #555555;
+  --font-display: "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-body: "Segoe UI", "Gill Sans", "Trebuchet MS", system-ui, sans-serif;
+}
